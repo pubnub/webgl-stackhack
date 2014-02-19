@@ -212,7 +212,10 @@
         if (!quiet) {
           pubnub.publish({
             channel: "stackhack",
-            message: position
+            message: {
+              action: "add",
+              position: position
+            }
           });
         }
 
@@ -221,14 +224,62 @@
         return voxel;
       }
 
+      function removeVoxel(intersector, quiet) {
+        scene.remove( intersector.object );
+        objects.splice( objects.indexOf( intersector.object ), 1 );
+
+        if (!quiet) {
+          pubnub.publish({
+            channel: "stackhack",
+            message: {
+              action: "remove",
+              position: intersector.object.position
+            }
+          });
+        }
+      }
+
       pubnub.subscribe({
         channel: "stackhack",
         message: function (message) {
-          if (message.x != voxelPosition.x
-            || message.y != voxelPosition.y
-            || message.z != voxelPosition.z) {
-            addVoxel(message, true);
+          if (message.action == "add") {
+            var position = message.position;
+            if (position.x != voxelPosition.x
+              || position.y != voxelPosition.y
+              || position.z != voxelPosition.z) {
+              addVoxel(position, true);
+            }
+          } else {
+            var position = new THREE.Vector3(message.position.x, message.position.y, message.position.z);
+            for (var i = objects.length - 1; i >= 0; i--) {
+              if (objects[i].position.equals(position)) {
+                scene.remove(objects[i]);
+                objects.splice(i, 1);
+                i = 0;
+              }
+            }
           }
+        }
+      });
+
+      var uuid = PUBNUB.uuid();
+      pubnub.subscribe({
+        channel: uuid,
+        callback: function (message) {
+          for(var i = 0; i < message.length; i++) {
+            addVoxel(message[i], true);
+          }
+          pubnub.unsubscribe({
+            channel: uuid
+          });
+        },
+        connect: function () {
+          pubnub.publish({
+            channel: "get-stacks",
+            message: {
+              uuid: uuid
+            }
+          });
         }
       });
 
@@ -248,9 +299,7 @@
 
             if ( intersector.object != plane ) {
 
-              scene.remove( intersector.object );
-
-              objects.splice( objects.indexOf( intersector.object ), 1 );
+              removeVoxel(intersector);
 
             }
 
