@@ -27,6 +27,10 @@
 
     <script>
 
+      ////////////
+      // Texture pack thanks to: http://www.planetminecraft.com/texture_pack/beautyness-resource-pack/
+      ////////////
+
       var pubnub = PUBNUB.init({
         subscribe_key: 'sub-c-4b585794-ced1-11e2-9fea-02ee2ddab7fe',
         publish_key: 'pub-c-6907155e-52de-48cc-9e33-3eb5b82573f3'
@@ -43,6 +47,7 @@
 
       var rollOverMesh, rollOverMaterial;
       var voxelPosition = new THREE.Vector3(), tmpVec = new THREE.Vector3(), normalMatrix = new THREE.Matrix3();
+      var voxelMatIndex = 0;
       var cubeGeo, cubeMaterial;
       var i, intersector;
 
@@ -78,9 +83,19 @@
 
         // cubes
 
+        textures = [
+          THREE.ImageUtils.loadTexture("textures/blocks/mycelium_top.png"),
+          THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png")
+        ];
+
+        materials = [];
+        for (var i = 0; i < textures.length; i++) {
+          tex = textures[i];
+          materials[i] = new THREE.MeshLambertMaterial({ color: 0xfeb74c, ambient: 0x00ff80, shading: THREE.FlatShading, map: textures[i] });
+          materials[i].ambient = materials[i].color;
+        };
+
         cubeGeo = new THREE.BoxGeometry( 50, 50, 50 );
-        cubeMaterial = new THREE.MeshLambertMaterial( { color: 0xfeb74c, ambient: 0x00ff80, shading: THREE.FlatShading, map: THREE.ImageUtils.loadTexture( "textures/square-outline-textured.png" ) } );
-        cubeMaterial.ambient = cubeMaterial.color;
 
         // picking
 
@@ -202,8 +217,9 @@
 
       }
 
-      function addVoxel(position, quiet) {
-        var voxel = new THREE.Mesh( cubeGeo, cubeMaterial );
+      function addVoxel(position, matIndex, quiet) {
+        var voxel = new THREE.Mesh( cubeGeo, materials[matIndex] );
+        voxel.matIndex = matIndex;
         voxel.position.copy( position );
         voxel.matrixAutoUpdate = false;
         voxel.updateMatrix();
@@ -214,7 +230,8 @@
             channel: "stackhack",
             message: {
               action: "add",
-              position: position
+              position: position,
+              matIndex: matIndex
             }
           });
         }
@@ -247,7 +264,7 @@
             if (position.x != voxelPosition.x
               || position.y != voxelPosition.y
               || position.z != voxelPosition.z) {
-              addVoxel(position, true);
+              addVoxel(position, message.matIndex, true);
             }
           } else {
             var position = new THREE.Vector3(message.position.x, message.position.y, message.position.z);
@@ -267,7 +284,7 @@
         channel: uuid,
         callback: function (message) {
           for(var i = 0; i < message.length; i++) {
-            addVoxel(message[i], true);
+            addVoxel(message[i].position, message[i].matIndex, true);
           }
           pubnub.unsubscribe({
             channel: uuid
@@ -310,7 +327,7 @@
             intersector = getRealIntersector( intersects );
             setVoxelPosition( intersector );
 
-            addVoxel(voxelPosition);
+            addVoxel(voxelPosition, voxelMatIndex);
           }
 
         }
@@ -323,6 +340,15 @@
           case 16: isShiftDown = true; break;
           case 17: isCtrlDown = true; break;
 
+          // 48 - 57 = key 0-9
+          case 48: voxelMatIndex = 0; break;
+          case 49: voxelMatIndex = 0; break;
+          case 50: voxelMatIndex = 1; break;
+          case 48: voxelMatIndex = 0; break;
+          case 48: voxelMatIndex = 0; break;
+          case 48: voxelMatIndex = 0; break;
+          case 48: voxelMatIndex = 0; break;
+          case 48: voxelMatIndex = 0; break;
         }
 
       }

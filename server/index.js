@@ -32,7 +32,7 @@ pubnub.subscribe({
     if (message.action == "add") {
       var position = message.position;
       var hash = computeHash(position.x, position.y, position.z).toString();
-      objects[hash] = position;
+      objects[hash] = message;
       cacheObjects();
     } else if (message.action == "remove") {
       var position = message.position;
