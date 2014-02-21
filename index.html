@@ -115,7 +115,17 @@
             THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
             THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
             THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png")
-          ]
+          ],
+
+          // Oak Leaves block
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png")
+          ],
         ];
 
         materials = [];
@@ -262,7 +272,7 @@
                 geo.faces[5].a = 5;
                 geo.faces[5].b = 0;
                 geo.faces[5].c = 4;
-                geo.faces[4].vertexColors[1] = geo.faces[5].vertexColors[1];
+                geo.faces[4].vertexColors[1] = geo.faces[5].vertexColors[0];
                 geo.faces[5].vertexColors[2] = geo.faces[4].vertexColors[0];
                 // Back right
                 geo.faces[4].vertexColors[2] = dark;
@@ -361,8 +371,14 @@
       }
 
       function removeVoxel(intersector, quiet) {
+        var position = intersector.object.position;
+        var key = [position.x, position.y, position.z].join('|');
+        delete locations[key];
+
         scene.remove( intersector.object );
         objects.splice( objects.indexOf( intersector.object ), 1 );
+
+        doAmbientOcclusion();
 
         if (!quiet) {
           pubnub.publish({
@@ -460,11 +476,11 @@
           case 48: voxelMatIndex = 0; break;
           case 49: voxelMatIndex = 0; break;
           case 50: voxelMatIndex = 1; break;
-          case 48: voxelMatIndex = 0; break;
-          case 48: voxelMatIndex = 0; break;
-          case 48: voxelMatIndex = 0; break;
-          case 48: voxelMatIndex = 0; break;
-          case 48: voxelMatIndex = 0; break;
+          case 51: voxelMatIndex = 2; break;
+          case 52: voxelMatIndex = 0; break;
+          case 53: voxelMatIndex = 0; break;
+          case 54: voxelMatIndex = 0; break;
+          case 55: voxelMatIndex = 0; break;
         }
 
       }
