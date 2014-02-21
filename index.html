@@ -130,7 +130,6 @@
         };
 
         cubeGeo = new THREE.BoxGeometry( 50, 50, 50 );
-        console.log(cubeGeo);
 
         // picking
 
@@ -406,9 +405,6 @@
           for(var i = 0; i < message.length; i++) {
             addVoxel(message[i].position, message[i].matIndex, true);
           }
-          pubnub.unsubscribe({
-            channel: uuid
-          });
         },
         connect: function () {
           pubnub.publish({

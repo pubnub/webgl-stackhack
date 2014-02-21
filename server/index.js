@@ -50,17 +50,22 @@ pubnub.subscribe({
 pubnub.subscribe({
   channel: 'get-stacks',
   callback: function (message) {
-    
-    pubnub.publish({
-      channel: message.uuid,
-      message: objectCache,
-      error: function (error) {
-        console.log("Publishing error:", error);
-      },
-      callback: function (success) {
-        console.log("Callback:", success);
-      }
-    });
+    var i = objectCache.length;
+    while (i > 0) {
+      var slice = objectCache.slice(i - 40 < 0 ? 0 : i - 40, i);
+      i -= 40;
+
+      pubnub.publish({
+        channel: message.uuid,
+        message: slice,
+        error: function (error) {
+          console.log("Publishing error:", error);
+        },
+        callback: function (success) {
+          console.log("Callback:", success);
+        }
+      });
+    }
   }
 });
 
