@@ -47,6 +47,7 @@
       if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
       var AO = true; // Ambient Occlusion
+      var BOUNDS = new THREE.Box3(new THREE.Vector3(-500, 0, -500), new THREE.Vector3(500, 1000, 500));
 
       var container, stats;
       var camera, scene, renderer;
@@ -175,7 +176,6 @@
         mouse2D = new THREE.Vector3( 0, 10000, 0.5 );
 
         // Lights
-
         var ambientLight = new THREE.AmbientLight( 0x606060 );
         scene.add( ambientLight );
 
@@ -183,6 +183,7 @@
         directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
         scene.add( directionalLight );
 
+        // Create the renderer and container
         renderer = new THREE.WebGLRenderer();
         renderer.setClearColor( 0x72D4E8 );
         renderer.setSize( window.innerWidth, window.innerHeight );
@@ -199,12 +200,10 @@
         document.addEventListener( 'keydown', onDocumentKeyDown, false );
         document.addEventListener( 'keyup', onDocumentKeyUp, false );
 
-        //
-
         window.addEventListener( 'resize', onWindowResize, false );
-
       }
 
+      // Performs vertex-based ambient occlusion on all the blocks
       function doAmbientOcclusion() {
         var light = new THREE.Color(0xffffff),
             dark = new THREE.Color(0x888888);
@@ -219,7 +218,7 @@
             if (geo.faces.length === 12 && AO == true) {
               var pos = objects[i].position;
 
-              // This is a terrible way to do AO for vertices
+              // This is a terrible brute-force way to do AO for vertices
               // There is probably some algorithm for doing this that I need to figure out later
 
               // Sides
@@ -249,31 +248,17 @@
                 // Front right
                 geo.faces[5].vertexColors[1] = dark;
               }
-              if (isVoxel(pos.x - 50, pos.y + 50, pos.z + 50)) {
-                geo.faces[4].a = 4;
-                geo.faces[4].b = 0;
-                geo.faces[4].c = 1;
-                geo.faces[5].a = 5;
-                geo.faces[5].b = 0;
-                geo.faces[5].c = 4;
-                geo.faces[4].vertexColors[1] = geo.faces[5].vertexColors[1];
-                geo.faces[5].vertexColors[2] = geo.faces[4].vertexColors[0];
-                // Front left
-                geo.faces[5].vertexColors[0] = dark;
-              }
               if (isVoxel(pos.x - 50, pos.y + 50, pos.z - 50)) {
                 // Back left
                 geo.faces[4].vertexColors[0] = dark;
               }
+              if (isVoxel(pos.x - 50, pos.y + 50, pos.z + 50)) {
+                flipCubeSide(geo);
+                // Front left
+                geo.faces[5].vertexColors[0] = dark;
+              }
               if (isVoxel(pos.x + 50, pos.y + 50, pos.z - 50)) {
-                geo.faces[4].a = 4;
-                geo.faces[4].b = 0;
-                geo.faces[4].c = 1;
-                geo.faces[5].a = 5;
-                geo.faces[5].b = 0;
-                geo.faces[5].c = 4;
-                geo.faces[4].vertexColors[1] = geo.faces[5].vertexColors[0];
-                geo.faces[5].vertexColors[2] = geo.faces[4].vertexColors[0];
+                flipCubeSide(geo);
                 // Back right
                 geo.faces[4].vertexColors[2] = dark;
               }
@@ -283,18 +268,41 @@
         }
       }
 
+      // Takes a face and flips the triangles to cross the other way
+      // This fixes vertex shading issues when doing ambient occlusion
+      function flipCubeSide(geo) {
+        geo.faces[4].a = 4;
+        geo.faces[4].b = 0;
+        geo.faces[4].c = 1;
+        geo.faces[5].a = 5;
+        geo.faces[5].b = 0;
+        geo.faces[5].c = 4;
+        geo.faces[4].vertexColors[1] = geo.faces[5].vertexColors[1];
+        geo.faces[5].vertexColors[2] = geo.faces[4].vertexColors[0];
+        geo.faceVertexUvs[0][4] = [
+          new THREE.Vector2(0, 1),
+          new THREE.Vector2(1, 0),
+          new THREE.Vector2(1, 1)
+        ];
+        geo.faceVertexUvs[0][5] = [
+          new THREE.Vector2(0, 0),
+          new THREE.Vector2(1, 0),
+          new THREE.Vector2(0, 1)
+        ];
+        geo.uvsNeedUpdate = true;
+        console.log(geo);
+      }
+
       function isVoxel(x, y, z) {
         var key = [x, y, z].join('|');
         return locations[key];
       }
 
       function onWindowResize() {
-
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
 
         renderer.setSize( window.innerWidth, window.innerHeight );
-
       }
 
       function getRealIntersector( intersects ) {
@@ -334,40 +342,43 @@
       }
 
       function onDocumentMouseMove( event ) {
-
         event.preventDefault();
 
         mouse2D.x = ( event.clientX / window.innerWidth ) * 2 - 1;
         mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
-
       }
 
       function addVoxel(position, matIndex, quiet) {
-        var voxel = new THREE.Mesh( cubeGeo.clone(), new THREE.MeshFaceMaterial(materials[matIndex]) );
-        voxel.matIndex = matIndex;
-        voxel.position.copy( position );
-        voxel.matrixAutoUpdate = false;
-        voxel.updateMatrix();
-        scene.add( voxel );
+        if (BOUNDS.containsPoint(position) && matIndex < materials.length - 1) {
+          // Create the voxel and add it to the scene
+          var voxel = new THREE.Mesh( cubeGeo.clone(), new THREE.MeshFaceMaterial(materials[matIndex]) );
+          voxel.matIndex = matIndex;
+          voxel.position.copy( position );
+          voxel.matrixAutoUpdate = false;
+          voxel.updateMatrix();
+          scene.add( voxel );
 
-        if (!quiet) {
-          pubnub.publish({
-            channel: "stackhack",
-            message: {
-              action: "add",
-              position: position,
-              matIndex: matIndex
-            }
-          });
+          // If we created the block, tell others about it
+          if (!quiet) {
+            pubnub.publish({
+              channel: "stackhack",
+              message: {
+                action: "add",
+                position: position,
+                matIndex: matIndex
+              }
+            });
+          }
+
+          // Add it to our object list and location map
+          objects.push( voxel );
+          var key = [position.x, position.y, position.z].join('|');
+          locations[key] = voxel;
+
+          doAmbientOcclusion();
+
+          return voxel;
         }
-
-        objects.push( voxel );
-        var key = [position.x, position.y, position.z].join('|');
-        locations[key] = voxel;
-
-        doAmbientOcclusion();
-
-        return voxel;
       }
 
       function removeVoxel(intersector, quiet) {
@@ -414,13 +425,17 @@
         }
       });
 
+      // Retrieve a list of all the current blocks
       var uuid = PUBNUB.uuid();
       pubnub.subscribe({
         channel: uuid,
         callback: function (message) {
+          AO = false;
           for(var i = 0; i < message.length; i++) {
             addVoxel(message[i].position, message[i].matIndex, true);
           }
+          AO = true;
+          doAmbientOcclusion();
         },
         connect: function () {
           pubnub.publish({
@@ -433,42 +448,34 @@
       });
 
       function onDocumentMouseDown( event ) {
-
         event.preventDefault();
 
         var intersects = raycaster.intersectObjects( objects );
 
         if ( intersects.length > 0 ) {
-
           intersector = getRealIntersector( intersects );
 
           // delete cube
 
           if ( isShiftDown ) {
-
             if ( intersector.object != plane ) {
-
               removeVoxel(intersector);
-
             }
 
           // create cube
 
           } else {
-
             intersector = getRealIntersector( intersects );
             setVoxelPosition( intersector );
 
             addVoxel(voxelPosition, voxelMatIndex);
           }
-
         }
       }
 
       function onDocumentKeyDown( event ) {
-
         switch( event.keyCode ) {
-
+          // Delete block and camera rotate controls
           case 16: isShiftDown = true; break;
           case 17: isCtrlDown = true; break;
 
@@ -482,37 +489,36 @@
           case 54: voxelMatIndex = 0; break;
           case 55: voxelMatIndex = 0; break;
         }
-
       }
 
       function onDocumentKeyUp( event ) {
-
         switch ( event.keyCode ) {
-
           case 16: isShiftDown = false; break;
           case 17: isCtrlDown = false; break;
-
         }
-
       }
 
-      //
+      // Mouse wheel zoom support
+      var ZOOM = 1400;
+      renderer.domElement.addEventListener('mousewheel', function (event) {
+        ZOOM -= event.wheelDeltaY * 0.3;
+        if (ZOOM > 3000) ZOOM = 3000;
+        if (ZOOM < 300) ZOOM = 300;
+        event.preventDefault();
+        return false;
+      });
 
+      // Request animation frame animation
       function animate() {
-
         requestAnimationFrame( animate );
 
         render();
         stats.update();
-
       }
 
       function render() {
-
         if ( isCtrlDown ) {
-
           theta += mouse2D.x * 1.5;
-
         }
 
         raycaster = projector.pickingRay( mouse2D.clone(), camera );
@@ -520,25 +526,20 @@
         var intersects = raycaster.intersectObjects( objects );
 
         if ( intersects.length > 0 ) {
-
           intersector = getRealIntersector( intersects );
 
           if ( intersector ) {
-
             setVoxelPosition( intersector );
             rollOverMesh.position = voxelPosition;
-
           }
-
         }
 
-        camera.position.x = 1400 * Math.sin( THREE.Math.degToRad( theta ) );
-        camera.position.z = 1400 * Math.cos( THREE.Math.degToRad( theta ) );
+        camera.position.x = ZOOM * Math.sin( THREE.Math.degToRad( theta ) );
+        camera.position.z = ZOOM * Math.cos( THREE.Math.degToRad( theta ) );
 
         camera.lookAt( scene.position );
 
         renderer.render( scene, camera );
-
       }
 
     </script>
