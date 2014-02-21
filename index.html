@@ -20,6 +20,14 @@
 
     <script src="js/three.js"></script>
 
+    <script src="http://mrdoob.github.com/three.js/examples/js/shaders/CopyShader.js"></script>
+    <script src="http://mrdoob.github.com/three.js/examples/js/shaders/SSAOShader.js"></script>
+    
+    <script src="http://mrdoob.github.com/three.js/examples/js/postprocessing/EffectComposer.js"></script>
+    <script src="http://mrdoob.github.com/three.js/examples/js/postprocessing/RenderPass.js"></script>
+    <script src="http://mrdoob.github.com/three.js/examples/js/postprocessing/MaskPass.js"></script>
+    <script src="http://mrdoob.github.com/three.js/examples/js/postprocessing/ShaderPass.js"></script>
+
     <script src="js/Detector.js"></script>
     <script src="js/stats.min.js"></script>
 
@@ -28,7 +36,7 @@
     <script>
 
       ////////////
-      // Texture pack thanks to: http://www.planetminecraft.com/texture_pack/beautyness-resource-pack/
+      // Texture pack thanks to: http://painterlypack.net/customizer.php
       ////////////
 
       var pubnub = PUBNUB.init({
@@ -37,6 +45,8 @@
       });
 
       if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+
+      var AO = true; // Ambient Occlusion
 
       var container, stats;
       var camera, scene, renderer;
@@ -52,6 +62,7 @@
       var i, intersector;
 
       var objects = [];
+      var locations = {};
 
       init();
       animate();
@@ -74,6 +85,8 @@
 
         scene = new THREE.Scene();
 
+        scene.fog = new THREE.FogExp2( 0xffffff, 0.0003 );
+
         // roll-over helpers
 
         rollOverGeo = new THREE.BoxGeometry( 50, 50, 50 );
@@ -84,18 +97,40 @@
         // cubes
 
         textures = [
-          THREE.ImageUtils.loadTexture("textures/blocks/mycelium_top.png"),
-          THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png")
+          // Grass cube
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/grass_top.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png")
+          ], 
+
+          // Oak block
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak_top.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png")
+          ]
         ];
 
         materials = [];
         for (var i = 0; i < textures.length; i++) {
-          tex = textures[i];
-          materials[i] = new THREE.MeshLambertMaterial({ color: 0xfeb74c, ambient: 0x00ff80, shading: THREE.FlatShading, map: textures[i] });
-          materials[i].ambient = materials[i].color;
+          materials[i] = [];
+          for (var j = 0; j < textures[i].length; j++) {
+            tex = textures[i][j];
+            tex.magFilter = THREE.NearestFilter;
+            tex.minFilter = THREE.LinearMipMapLinearFilter;
+            materials[i][j] = new THREE.MeshLambertMaterial({ color: 0xfeb74c, ambient: 0xfeb74c, map: tex, shading: THREE.FlatShading, vertexColors: THREE.VertexColors });
+          }
         };
 
         cubeGeo = new THREE.BoxGeometry( 50, 50, 50 );
+        console.log(cubeGeo);
 
         // picking
 
@@ -108,13 +143,11 @@
         var geometry = new THREE.Geometry();
 
         for ( var i = - size; i <= size; i += step ) {
-
           geometry.vertices.push( new THREE.Vector3( - size, 0, i ) );
           geometry.vertices.push( new THREE.Vector3(   size, 0, i ) );
 
           geometry.vertices.push( new THREE.Vector3( i, 0, - size ) );
           geometry.vertices.push( new THREE.Vector3( i, 0,   size ) );
-
         }
 
         var material = new THREE.LineBasicMaterial( { color: 0x000000, opacity: 0.2, transparent: true } );
@@ -141,8 +174,8 @@
         directionalLight.position.set( 1, 0.75, 0.5 ).normalize();
         scene.add( directionalLight );
 
-        renderer = new THREE.WebGLRenderer( { antialias: true } );
-        renderer.setClearColor( 0xf0f0f0 );
+        renderer = new THREE.WebGLRenderer();
+        renderer.setClearColor( 0x72D4E8 );
         renderer.setSize( window.innerWidth, window.innerHeight );
 
         container.appendChild( renderer.domElement );
@@ -161,6 +194,89 @@
 
         window.addEventListener( 'resize', onWindowResize, false );
 
+      }
+
+      function doAmbientOcclusion() {
+        var light = new THREE.Color(0xffffff),
+            dark = new THREE.Color(0x888888);
+        for (var i = 0; i < objects.length; i++) {
+          var geo = objects[i].geometry;
+          for(var j = 0; j < geo.faces.length; j++) {
+            var n = 3;
+            while(n--) {
+              geo.faces[j].vertexColors[n] = light;
+            }
+
+            if (geo.faces.length === 12 && AO == true) {
+              var pos = objects[i].position;
+
+              // This is a terrible way to do AO for vertices
+              // There is probably some algorithm for doing this that I need to figure out later
+
+              // Sides
+              if (isVoxel(pos.x, pos.y + 50, pos.z - 50)) {
+                geo.faces[4].vertexColors[0] = dark;
+                geo.faces[4].vertexColors[2] = dark;
+                geo.faces[5].vertexColors[2] = dark;
+              }
+              if (isVoxel(pos.x - 50, pos.y + 50, pos.z)) {
+                geo.faces[4].vertexColors[0] = dark;
+                geo.faces[5].vertexColors[0] = dark;
+                geo.faces[4].vertexColors[1] = dark;
+              }
+              if (isVoxel(pos.x + 50, pos.y + 50, pos.z)) {
+                geo.faces[5].vertexColors[1] = dark;
+                geo.faces[5].vertexColors[2] = dark;
+                geo.faces[4].vertexColors[2] = dark;
+              }
+              if (isVoxel(pos.x, pos.y + 50, pos.z + 50)) {
+                geo.faces[5].vertexColors[0] = dark;
+                geo.faces[5].vertexColors[1] = dark;
+                geo.faces[4].vertexColors[1] = dark;
+              }
+
+              // Corners
+              if (isVoxel(pos.x + 50, pos.y + 50, pos.z + 50)) {
+                // Front right
+                geo.faces[5].vertexColors[1] = dark;
+              }
+              if (isVoxel(pos.x - 50, pos.y + 50, pos.z + 50)) {
+                geo.faces[4].a = 4;
+                geo.faces[4].b = 0;
+                geo.faces[4].c = 1;
+                geo.faces[5].a = 5;
+                geo.faces[5].b = 0;
+                geo.faces[5].c = 4;
+                geo.faces[4].vertexColors[1] = geo.faces[5].vertexColors[1];
+                geo.faces[5].vertexColors[2] = geo.faces[4].vertexColors[0];
+                // Front left
+                geo.faces[5].vertexColors[0] = dark;
+              }
+              if (isVoxel(pos.x - 50, pos.y + 50, pos.z - 50)) {
+                // Back left
+                geo.faces[4].vertexColors[0] = dark;
+              }
+              if (isVoxel(pos.x + 50, pos.y + 50, pos.z - 50)) {
+                geo.faces[4].a = 4;
+                geo.faces[4].b = 0;
+                geo.faces[4].c = 1;
+                geo.faces[5].a = 5;
+                geo.faces[5].b = 0;
+                geo.faces[5].c = 4;
+                geo.faces[4].vertexColors[1] = geo.faces[5].vertexColors[1];
+                geo.faces[5].vertexColors[2] = geo.faces[4].vertexColors[0];
+                // Back right
+                geo.faces[4].vertexColors[2] = dark;
+              }
+            }
+          }
+          geo.colorsNeedUpdate = true;
+        }
+      }
+
+      function isVoxel(x, y, z) {
+        var key = [x, y, z].join('|');
+        return locations[key];
       }
 
       function onWindowResize() {
@@ -218,7 +334,7 @@
       }
 
       function addVoxel(position, matIndex, quiet) {
-        var voxel = new THREE.Mesh( cubeGeo, materials[matIndex] );
+        var voxel = new THREE.Mesh( cubeGeo.clone(), new THREE.MeshFaceMaterial(materials[matIndex]) );
         voxel.matIndex = matIndex;
         voxel.position.copy( position );
         voxel.matrixAutoUpdate = false;
@@ -237,6 +353,10 @@
         }
 
         objects.push( voxel );
+        var key = [position.x, position.y, position.z].join('|');
+        locations[key] = voxel;
+
+        doAmbientOcclusion();
 
         return voxel;
       }

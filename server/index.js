@@ -30,11 +30,13 @@ pubnub.subscribe({
   channel: 'stackhack',
   callback: function (message) {
     if (message.action == "add") {
+      console.log("Adding block.");
       var position = message.position;
       var hash = computeHash(position.x, position.y, position.z).toString();
       objects[hash] = message;
       cacheObjects();
     } else if (message.action == "remove") {
+      console.log("Removing block.");
       var position = message.position;
       var hash = computeHash(position.x, position.y, position.z).toString();
       delete objects[hash];
@@ -48,9 +50,16 @@ pubnub.subscribe({
 pubnub.subscribe({
   channel: 'get-stacks',
   callback: function (message) {
+    
     pubnub.publish({
       channel: message.uuid,
-      message: objectCache
+      message: objectCache,
+      error: function (error) {
+        console.log("Publishing error:", error);
+      },
+      callback: function (success) {
+        console.log("Callback:", success);
+      }
     });
   }
 });
