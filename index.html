@@ -60,8 +60,8 @@
         position: absolute;
         top: 20px !important;
         left: 50%;
-        width: 500px;
-        margin-left: -100px;
+        width: 630px;
+        margin-left: -315px;
       }
 
       #blocks ul {
@@ -76,9 +76,10 @@
         margin: 0;
         border: 5px solid rgba(0, 0, 0, 0.3);
         color: white;
-        text-align: center;
+        padding: 5px;
         line-height: 32px;
-        font-size: 24px;
+        font-size: 18px;
+        line-height: 50px;
         background-size: cover;
         margin-right: 10px;
       }
@@ -89,14 +90,47 @@
 
       #blocks ul li.one {
         background: url(textures/blocks/grass_side.png);
+        background-size: cover;
       }
 
       #blocks ul li.two {
         background: url(textures/blocks/log_big_oak.png);
+        background-size: cover;
       }
 
       #blocks ul li.three {
         background: url(textures/blocks/leaves_big_oak_opaque.png);
+        background-size: cover;
+      }
+
+      #blocks ul li.four {
+        background: url(textures/blocks/dirt.png);
+        background-size: cover;
+      }
+
+      #blocks ul li.five {
+        background: url(textures/blocks/sand.png);
+        background-size: cover;
+      }
+
+      #blocks ul li.six {
+        background: url(textures/blocks/snow.png);
+        background-size: cover;
+      }
+
+      #blocks ul li.seven {
+        background: url(textures/blocks/ice.png);
+        background-size: cover;
+      }
+
+      #blocks ul li.eight {
+        background: url(textures/blocks/furnace_front_on.png);
+        background-size: cover;
+      }
+
+      #blocks ul li.nine {
+        background: url(textures/blocks/cobblestone.png);
+        background-size: cover;
       }
     </style>
   </head>
@@ -131,6 +165,12 @@
           <li class="one selected">1</li>
           <li class="two">2</li>
           <li class="three">3</li>
+          <li class="four">4</li>
+          <li class="five">5</li>
+          <li class="six">6</li>
+          <li class="seven">7</li>
+          <li class="eight">8</li>
+          <li class="nine">9</li>
         </ul>
       </div>
     </div>
@@ -241,7 +281,7 @@
             THREE.ImageUtils.loadTexture("textures/blocks/grass_top.png"),
             THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
             THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png")
+            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png")
           ], 
 
           // Oak block
@@ -263,6 +303,66 @@
             THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
             THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png")
           ],
+
+          // Dirt
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png")
+          ],
+
+          // Sand
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/sand.png")
+          ],
+
+          // Snow
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/snow.png")
+          ],
+
+          // Ice
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/ice.png")
+          ],
+
+          // Furnace
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/furnace_front_on.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/furnace_side.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/furnace_top.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/furnace_top.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/furnace_side.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/furnace_side.png")
+          ],
+
+          // Cobblestone
+          [
+            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
+            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png")
+          ],
         ];
 
         materials = [];
@@ -272,7 +372,7 @@
             tex = textures[i][j];
             tex.magFilter = THREE.NearestFilter;
             tex.minFilter = THREE.LinearMipMapLinearFilter;
-            materials[i][j] = new THREE.MeshLambertMaterial({ color: 0xfeb74c, ambient: 0xfeb74c, map: tex, shading: THREE.FlatShading, vertexColors: THREE.VertexColors });
+            materials[i][j] = new THREE.MeshLambertMaterial({ map: tex, shading: THREE.FlatShading, vertexColors: THREE.VertexColors });
           }
           materials[i] = new THREE.MeshFaceMaterial(materials[i]);
         };
@@ -651,10 +751,12 @@
           case 49: selectTexture(0); break;
           case 50: selectTexture(1); break;
           case 51: selectTexture(2); break;
-          case 52: selectTexture(0); break;
-          case 53: selectTexture(0); break;
-          case 54: selectTexture(0); break;
-          case 55: selectTexture(0); break;
+          case 52: selectTexture(3); break;
+          case 53: selectTexture(4); break;
+          case 54: selectTexture(5); break;
+          case 55: selectTexture(6); break;
+          case 56: selectTexture(7); break;
+          case 57: selectTexture(8); break;
         }
       }
 
