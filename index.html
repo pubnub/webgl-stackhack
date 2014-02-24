@@ -7,7 +7,7 @@
     <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
     <style>
       body {
-        font-family: Monospace;
+        font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
         background-color: #f0f0f0;
         margin: 0px;
         overflow: hidden;
@@ -27,12 +27,60 @@
       }
 
       #info {
+        color: white;
         position: absolute;
         left: 20px !important;
         bottom: 20px !important;
         z-index: 201;
         background: rgba(0, 0, 0, 0.3);
         padding: 10px;
+      }
+
+      #info a {
+        color: white;
+      }
+
+      #blocks {
+        position: absolute;
+        top: 20px !important;
+        left: 50%;
+        width: 500px;
+        margin-left: -100px;
+      }
+
+      #blocks ul {
+        list-style: none;
+      }
+
+      #blocks ul li {
+        display: inline-block;
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        margin: 0;
+        border: 5px solid rgba(0, 0, 0, 0.3);
+        color: white;
+        text-align: center;
+        line-height: 32px;
+        font-size: 24px;
+        background-size: cover;
+        margin-right: 10px;
+      }
+
+      #blocks ul li.selected {
+        border-color: white;
+      }
+
+      #blocks ul li.one {
+        background: url(textures/blocks/grass_side.png);
+      }
+
+      #blocks ul li.two {
+        background: url(textures/blocks/log_big_oak.png);
+      }
+
+      #blocks ul li.three {
+        background: url(textures/blocks/leaves_big_oak_opaque.png);
       }
     </style>
   </head>
@@ -49,11 +97,21 @@
       <a href="http://pubnub.com" target="_blank"><div id="logo"></div></a>
 
       <div id="info">
-        <a href="http://threejs.org" target="_blank">three.js</a> - Collaborative Voxel Painting - WebGL<br><strong>click</strong>: add voxel, <strong>shift + click</strong>: remove voxel, <strong>control</strong>: rotate
+        <a href="http://threejs.org" target="_blank">three.js</a> - Collaborative Voxel Painting - WebGL
+        <br>
+        <strong>click</strong>: add voxel
+        <br>
+        <strong>shift + click</strong>: remove voxel
+        <br>
+        <strong>control</strong>: rotate
       </div>
 
       <div id="blocks">
-        
+        <ul>
+          <li class="one selected">1</li>
+          <li class="two">2</li>
+          <li class="three">3</li>
+        </ul>
       </div>
     </div>
 
@@ -106,6 +164,31 @@
 
       init();
       animate();
+
+      function numToWord(num) {
+        if (num === 1) return "one";
+        else if (num === 2) return "two";
+        else if (num === 3) return "three";
+        else if (num === 4) return "four";
+        else if (num === 5) return "five";
+        else if (num === 6) return "six";
+        else if (num === 7) return "seven";
+        else if (num === 8) return "eight";
+        else if (num === 9) return "nine";
+        else return "";
+      }
+
+      function selectTexture(num) {
+        // Set the texture index
+        voxelMatIndex = num;
+
+        // Now set the ui
+        num += 1;
+        var selected = document.querySelector('#blocks li.selected');
+        selected.className = selected.className.replace('selected', '').trim();
+        var className = numToWord(num);
+        document.querySelector('#blocks li.' + className).className += " selected";
+      }
 
       function init() {
 
@@ -539,14 +622,14 @@
           case 17: isCtrlDown = true; break;
 
           // 48 - 57 = key 0-9
-          case 48: voxelMatIndex = 0; break;
-          case 49: voxelMatIndex = 0; break;
-          case 50: voxelMatIndex = 1; break;
-          case 51: voxelMatIndex = 2; break;
-          case 52: voxelMatIndex = 0; break;
-          case 53: voxelMatIndex = 0; break;
-          case 54: voxelMatIndex = 0; break;
-          case 55: voxelMatIndex = 0; break;
+          case 48: selectTexture(0); break;
+          case 49: selectTexture(0); break;
+          case 50: selectTexture(1); break;
+          case 51: selectTexture(2); break;
+          case 52: selectTexture(0); break;
+          case 53: selectTexture(0); break;
+          case 54: selectTexture(0); break;
+          case 55: selectTexture(0); break;
         }
       }
 
