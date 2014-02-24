@@ -15,15 +15,21 @@
 
       #oldie { background-color: #ddd !important }
 
-      #logo {
+      #header {
         position: absolute;
         top: 20px !important;
         left: 20px !important;
         z-index: 200;
+        color: white;
+        font-size: 25px;
+      }
+
+      #logo {
         background: url(assets/logo.png);
         background-size: cover;
         width: 200px;
         height: 45px;
+        margin-bottom: 5px;
       }
 
       #info {
@@ -38,6 +44,16 @@
 
       #info a {
         color: white;
+      }
+
+      #fullscreen {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        background: url(assets/fullscreen.png);
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
       }
 
       #blocks {
@@ -94,16 +110,20 @@
     </script>
 
     <div id="page">
-      <a href="http://pubnub.com" target="_blank"><div id="logo"></div></a>
+      <div id="header">
+        <a href="http://pubnub.com" target="_blank"><div id="logo"></div></a>Collaborative Voxel Painting
+      </div>
 
       <div id="info">
-        <a href="http://threejs.org" target="_blank">three.js</a> - Collaborative Voxel Painting - WebGL
-        <br>
         <strong>click</strong>: add voxel
         <br>
         <strong>shift + click</strong>: remove voxel
         <br>
         <strong>control</strong>: rotate
+        <br>
+        <a href="http://painterlypack.net/" target="_blank">PainterlyPack</a> - Textures
+        <br>
+        <a href="http://threejs.org" target="_blank">three.js</a> - WebGL
       </div>
 
       <div id="blocks">
@@ -114,6 +134,8 @@
         </ul>
       </div>
     </div>
+
+    <div id="fullscreen"></div>
 
     <script src="js/three.js"></script>
 
@@ -144,7 +166,8 @@
       if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
 
       var AO = true; // Ambient Occlusion
-      var BOUNDS = new THREE.Box3(new THREE.Vector3(-500, 0, -500), new THREE.Vector3(500, 1000, 500));
+      var BOUNDS = new THREE.Box3(new THREE.Vector3(-500, 0, -500), new THREE.Vector3(500, 1000, 500)); // World Bounds
+      var DEBUG = false; // Add stats box or not
 
       var container, stats;
       var camera, scene, renderer;
@@ -308,7 +331,9 @@
         stats.domElement.style.position = 'absolute';
         stats.domElement.style.top = '0px';
         stats.domElement.style.right = '0px';
-        container.appendChild( stats.domElement );
+        if (DEBUG) {
+          container.appendChild( stats.domElement );
+        }
 
         document.addEventListener( 'mousemove', onDocumentMouseMove, false );
         document.addEventListener( 'mousedown', onDocumentMouseDown, false );
@@ -683,6 +708,13 @@
 
         renderer.render( scene, camera );
       }
+
+      document.querySelector('#fullscreen').addEventListener('click', function (event) {
+        var el = document.querySelector('#page');
+        if (el.requestFullscreen) el.requestFullscreen();
+        if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+        if (el.mozRequestFullscreen) el.mozRequestFullscreen();
+      });
 
     </script>
 
