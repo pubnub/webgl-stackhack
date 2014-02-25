@@ -1,6 +1,6 @@
 {
   "name": "stackhack-server",
-  "version": "0.0.1",
+  "version": "0.0.1-1",
   "description": "A server for storing stackhack blocks.",
   "main": "index.js",
   "dependencies": {
@@ -9,8 +9,13 @@
   },
   "devDependencies": {},
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
   },
   "author": "PubNub",
-  "license": "MIT"
+  "license": "MIT",
+  "subdomain": "stackhack-server",
+  "engines": {
+    "node": "0.10.x"
+  }
 }
