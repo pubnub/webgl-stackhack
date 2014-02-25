@@ -13,9 +13,9 @@ function computeHash(x, y, z) {
   var p1 = 73856093,
       p2 = 19349663,
       p3 = 83492791,
-      n = 5000;
+      n = 1;
 
-  return ((x * p1) ^ (y * p2) ^ (z * p3)) % n;
+  return (p1 * x + p2 * y + p3 * z);
 }
 
 // Caches the objects so we can easily return them
@@ -30,13 +30,12 @@ pubnub.subscribe({
   channel: 'stackhack',
   callback: function (message) {
     if (message.action == "add") {
-      console.log("Adding block.");
       var position = message.position;
       var hash = computeHash(position.x, position.y, position.z).toString();
+      console.log(position, hash, objects[hash]);
       objects[hash] = message;
       cacheObjects();
     } else if (message.action == "remove") {
-      console.log("Removing block.");
       var position = message.position;
       var hash = computeHash(position.x, position.y, position.z).toString();
       delete objects[hash];
