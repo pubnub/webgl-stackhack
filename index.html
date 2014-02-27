@@ -192,6 +192,8 @@
 
     <script src="http://cdn.pubnub.com/pubnub.js"></script>
 
+    <script src="js/textures.js"></script>
+
     <script>
 
       ////////////
@@ -207,7 +209,7 @@
 
       var AO = true; // Ambient Occlusion
       var BOUNDS = new THREE.Box3(new THREE.Vector3(-500, 0, -500), new THREE.Vector3(500, 1000, 500)); // World Bounds
-      var DEBUG = false; // Add stats box or not
+      var DEBUG = true; // Add stats box or not
 
       var container, stats;
       var camera, scene, renderer;
@@ -224,6 +226,8 @@
 
       var objects = [];
       var locations = {};
+
+      var chunks = [], intersectors = [];
 
       init();
       animate();
@@ -271,100 +275,6 @@
         rollOverMesh = new THREE.Mesh( rollOverGeo, rollOverMaterial );
         scene.add( rollOverMesh );
 
-        // cubes
-
-        textures = [
-          // Grass cube
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/grass_top.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/grass_side.png")
-          ], 
-
-          // Oak block
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak_top.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/log_big_oak.png")
-          ],
-
-          // Oak Leaves block
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/leaves_big_oak_opaque.png")
-          ],
-
-          // Dirt
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/dirt.png")
-          ],
-
-          // Sand
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/sand.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/sand.png")
-          ],
-
-          // Snow
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/snow.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/snow.png")
-          ],
-
-          // Ice
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/ice.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/ice.png")
-          ],
-
-          // Furnace
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/furnace_front_on.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/furnace_side.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/furnace_top.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/furnace_top.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/furnace_side.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/furnace_side.png")
-          ],
-
-          // Cobblestone
-          [
-            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png"),
-            THREE.ImageUtils.loadTexture("textures/blocks/cobblestone.png")
-          ],
-        ];
-
         materials = [];
         for (var i = 0; i < textures.length; i++) {
           materials[i] = [];
@@ -375,6 +285,9 @@
             materials[i][j] = new THREE.MeshLambertMaterial({ map: tex, shading: THREE.FlatShading, vertexColors: THREE.VertexColors });
           }
           materials[i] = new THREE.MeshFaceMaterial(materials[i]);
+
+          // Add chunk to store constructed mesh
+          chunks[i] = new Chunk(i);
         };
 
         cubeGeo = new THREE.BoxGeometry( 50, 50, 50 );
@@ -408,7 +321,7 @@
         plane.visible = false;
         scene.add( plane );
 
-        objects.push( plane );
+        intersectors.push( plane );
 
         mouse2D = new THREE.Vector3( 0, 10000, 0.5 );
 
@@ -613,6 +526,37 @@
         mouse2D.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
       }
 
+      function Chunk(materialId) {
+        this.mergedGeo = new THREE.Geometry();
+        this.mergedGeo.dynamic = true;
+        this.materialId = materialId;
+        this.dirty = false;
+      }
+
+      Chunk.prototype.addGeometry = function (geometry) {
+        THREE.GeometryUtils.merge(this.mergedGeo, geometry);
+
+        this.dirty = true;
+      }
+
+      Chunk.prototype.reconstructMesh = function () {
+        if (this.mergedCubes) {
+          intersectors.splice(intersectors.indexOf(this.mergedCubes), 1);
+          scene.remove(this.mergedCubes);
+        }
+
+        this.mergedGeo.computeFaceNormals();
+
+        this.mergedCubes = new THREE.Mesh(this.mergedGeo.clone(), materials[this.materialId]);
+        this.mergedCubes.matrixAutoUpdate = false;
+        this.mergedCubes.updateMatrix();
+
+        intersectors.push(this.mergedCubes);
+        scene.add(this.mergedCubes);
+
+        this.dirty = false;
+      }
+
       function addVoxel(position, matIndex, quiet) {
         if (BOUNDS.containsPoint(position) && matIndex < materials.length) {
           // Create the voxel and add it to the scene
@@ -623,7 +567,8 @@
           voxel.position.copy( position );
           voxel.matrixAutoUpdate = false;
           voxel.updateMatrix();
-          scene.add( voxel );
+
+          chunks[matIndex].addGeometry(voxel);
 
           // If we created the block, tell others about it
           if (!quiet) {
@@ -653,10 +598,11 @@
         var key = [position.x, position.y, position.z].join('|');
         delete locations[key];
 
-        scene.remove( intersector.object );
         objects.splice( objects.indexOf( intersector.object ), 1 );
 
         doAmbientOcclusion();
+
+        console.log(intersector.object.position);
 
         if (!quiet) {
           pubnub.publish({
@@ -669,55 +615,10 @@
         }
       }
 
-      pubnub.subscribe({
-        channel: "stackhack",
-        message: function (message) {
-          if (message.action == "add") {
-            var position = message.position;
-            if (position.x != voxelPosition.x
-              || position.y != voxelPosition.y
-              || position.z != voxelPosition.z) {
-              addVoxel(position, message.matIndex, true);
-            }
-          } else {
-            var position = new THREE.Vector3(message.position.x, message.position.y, message.position.z);
-            for (var i = objects.length - 1; i >= 0; i--) {
-              if (objects[i].position.equals(position)) {
-                scene.remove(objects[i]);
-                objects.splice(i, 1);
-                i = 0;
-              }
-            }
-          }
-        }
-      });
-
-      // Retrieve a list of all the current blocks
-      var uuid = PUBNUB.uuid();
-      pubnub.subscribe({
-        channel: uuid,
-        callback: function (message) {
-          AO = false;
-          for(var i = 0; i < message.length; i++) {
-            addVoxel(message[i].position, message[i].matIndex, true);
-          }
-          AO = true;
-          doAmbientOcclusion();
-        },
-        connect: function () {
-          pubnub.publish({
-            channel: "get-stacks",
-            message: {
-              uuid: uuid
-            }
-          });
-        }
-      });
-
       function onDocumentMouseDown( event ) {
         event.preventDefault();
 
-        var intersects = raycaster.intersectObjects( objects );
+        var intersects = raycaster.intersectObjects( intersectors );
 
         if ( intersects.length > 0 ) {
           intersector = getRealIntersector( intersects );
@@ -726,6 +627,7 @@
 
           if ( isShiftDown ) {
             if ( intersector.object != plane ) {
+              var intersects = raycaster.intersectObjects( objects );
               removeVoxel(intersector);
             }
 
@@ -786,13 +688,22 @@
       }
 
       function render() {
+        // Recompute dirty meshes
+        for (var i = 0; i < chunks.length; i++) {
+          var chunk = chunks[i];
+
+          if(chunk.dirty === true) {
+            chunk.reconstructMesh();
+          }
+        }
+
         if ( isCtrlDown ) {
           theta += mouse2D.x * 1.5;
         }
 
         raycaster = projector.pickingRay( mouse2D.clone(), camera );
 
-        var intersects = raycaster.intersectObjects( objects );
+        var intersects = raycaster.intersectObjects( intersectors );
 
         if ( intersects.length > 0 ) {
           intersector = getRealIntersector( intersects );
@@ -816,6 +727,53 @@
         if (el.requestFullscreen) el.requestFullscreen();
         if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
         if (el.mozRequestFullscreen) el.mozRequestFullscreen();
+      });
+
+      // Use PubNub to get the initial state of the map
+      pubnub.subscribe({
+        channel: "stackhack",
+        message: function (message) {
+          if (message.action == "add") {
+            var position = message.position;
+            if (position.x != voxelPosition.x
+              || position.y != voxelPosition.y
+              || position.z != voxelPosition.z) {
+              addVoxel(position, message.matIndex, true);
+            }
+          } else {
+            var position = new THREE.Vector3(message.position.x, message.position.y, message.position.z);
+            for (var i = objects.length - 1; i >= 0; i--) {
+              if (objects[i].position.equals(position)) {
+                scene.remove(objects[i]);
+                objects.splice(i, 1);
+                i = 0;
+              }
+            }
+          }
+        }
+      });
+
+      // Retrieve a list of all the current blocks
+      var uuid = PUBNUB.uuid();
+      pubnub.subscribe({
+        channel: uuid,
+        callback: function (message) {
+          AO = false;
+          for(var i = 0; i < message.length; i++) {
+            addVoxel(message[i].position, message[i].matIndex, true);
+          }
+          AO = true;
+
+          doAmbientOcclusion();
+        },
+        connect: function () {
+          pubnub.publish({
+            channel: "get-stacks",
+            message: {
+              uuid: uuid
+            }
+          });
+        }
       });
 
     </script>
