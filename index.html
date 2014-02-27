@@ -227,7 +227,7 @@
       var objects = [];
       var locations = {};
 
-      var chunks = [], intersectors = [];
+      var chunks = [], intersectors = [], intersectorScene = new THREE.Scene(), camera2;
 
       init();
       animate();
@@ -263,6 +263,11 @@
 
         camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
         camera.position.y = 800;
+
+        camera2 = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 10000 );
+        camera2.position.y = 800;
+
+        intersectorScene.add(camera2);
 
         scene = new THREE.Scene();
 
@@ -531,12 +536,27 @@
         this.mergedGeo.dynamic = true;
         this.materialId = materialId;
         this.dirty = false;
+        this.geometries = [];
       }
 
       Chunk.prototype.addGeometry = function (geometry) {
         THREE.GeometryUtils.merge(this.mergedGeo, geometry);
-
+        this.geometries.push(geometry);
         this.dirty = true;
+      }
+
+      Chunk.prototype.removeGeometry = function (geometry) {
+        this.geometries.splice(this.geometries.indexOf(geometry), 1);
+        this.rebuildGeometry();
+        this.dirty = true;
+      }
+
+      Chunk.prototype.rebuildGeometry = function () {
+        this.mergedGeo = new THREE.Geometry();
+        for (var i = 0; i < this.geometries.length; i++) {
+          var geom = this.geometries[i];
+          THREE.GeometryUtils.merge(this.mergedGeo, geom);
+        }
       }
 
       Chunk.prototype.reconstructMesh = function () {
@@ -562,13 +582,22 @@
           // Create the voxel and add it to the scene
           var geo = cubeGeo.clone();
           geo.dynamic = true;
+
           var voxel = new THREE.Mesh( geo, materials[matIndex] );
           voxel.matIndex = matIndex;
-          voxel.position.copy( position );
+          voxel.position.copy(position);
           voxel.matrixAutoUpdate = false;
           voxel.updateMatrix();
 
           chunks[matIndex].addGeometry(voxel);
+
+          // Add it to our object list and location map
+          objects.push(voxel);
+          intersectorScene.add(voxel);
+          var key = [position.x, position.y, position.z].join('|');
+          locations[key] = voxel;
+
+          doAmbientOcclusion();
 
           // If we created the block, tell others about it
           if (!quiet) {
@@ -582,13 +611,6 @@
             });
           }
 
-          // Add it to our object list and location map
-          objects.push( voxel );
-          var key = [position.x, position.y, position.z].join('|');
-          locations[key] = voxel;
-
-          doAmbientOcclusion();
-
           return voxel;
         }
       }
@@ -598,11 +620,12 @@
         var key = [position.x, position.y, position.z].join('|');
         delete locations[key];
 
-        objects.splice( objects.indexOf( intersector.object ), 1 );
+        objects.splice(objects.indexOf( intersector.object ), 1);
+        intersectorScene.remove(intersector.object);
+
+        chunks[intersector.object.matIndex].removeGeometry(intersector.object);
 
         doAmbientOcclusion();
-
-        console.log(intersector.object.position);
 
         if (!quiet) {
           pubnub.publish({
@@ -628,6 +651,7 @@
           if ( isShiftDown ) {
             if ( intersector.object != plane ) {
               var intersects = raycaster.intersectObjects( objects );
+              intersector = getRealIntersector( intersects );
               removeVoxel(intersector);
             }
 
@@ -719,6 +743,7 @@
 
         camera.lookAt( scene.position );
 
+        renderer.render(intersectorScene, camera2);
         renderer.render( scene, camera );
       }
 
