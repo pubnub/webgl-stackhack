@@ -364,7 +364,7 @@
       // Performs vertex-based ambient occlusion on all the blocks
       function doAmbientOcclusion() {
         var light = new THREE.Color(0xffffff),
-            dark = new THREE.Color(0x888888);
+            dark = new THREE.Color(0x777777);
         for (var i = 0; i < objects.length; i++) {
           var geo = objects[i].geometry;
 
@@ -427,6 +427,11 @@
           }
 
           geo.colorsNeedUpdate = true;
+        }
+
+        for (var n = 0; n < chunks.length; n++) {
+          // This is wasted computation but seems to be fast enough anyways
+          chunks[n].rebuildGeometry();
         }
       }
 
@@ -589,6 +594,8 @@
           voxel.matrixAutoUpdate = false;
           voxel.updateMatrix();
 
+          doAmbientOcclusion();
+
           chunks[matIndex].addGeometry(voxel);
 
           // Add it to our object list and location map
@@ -596,8 +603,6 @@
           intersectorScene.add(voxel);
           var key = [position.x, position.y, position.z].join('|');
           locations[key] = voxel;
-
-          doAmbientOcclusion();
 
           // If we created the block, tell others about it
           if (!quiet) {
@@ -620,12 +625,12 @@
         var key = [position.x, position.y, position.z].join('|');
         delete locations[key];
 
+        doAmbientOcclusion();
+
         objects.splice(objects.indexOf( intersector.object ), 1);
         intersectorScene.remove(intersector.object);
 
         chunks[intersector.object.matIndex].removeGeometry(intersector.object);
-
-        doAmbientOcclusion();
 
         if (!quiet) {
           pubnub.publish({
