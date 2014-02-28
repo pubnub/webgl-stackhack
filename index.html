@@ -603,7 +603,7 @@
           voxel.updateMatrix();
 
           doAmbientOcclusion();
-
+          
           chunks[matIndex].addGeometry(voxel);
 
           // Add it to our object list and location map
@@ -633,12 +633,12 @@
         var key = [position.x, position.y, position.z].join('|');
         delete locations[key];
 
-        doAmbientOcclusion();
-
         objects.splice(objects.indexOf( intersector.object ), 1);
         intersectorScene.remove(intersector.object);
 
         chunks[intersector.object.matIndex].removeGeometry(intersector.object);
+
+        doAmbientOcclusion();
 
         if (!quiet) {
           pubnub.publish({
@@ -676,7 +676,6 @@
           } else {
             intersector = getRealIntersector( intersects );
             setVoxelPosition( intersector );
-
             addVoxel(voxelPosition, voxelMatIndex);
           }
         }
@@ -776,9 +775,8 @@
         message: function (message) {
           if (message.action == "add") {
             var position = message.position;
-            if (position.x != voxelPosition.x
-              || position.y != voxelPosition.y
-              || position.z != voxelPosition.z) {
+            var key = [position.x, position.y, position.z].join('|');
+            if (!locations[key]) {
               addVoxel(position, message.matIndex, true);
             }
           } else {
