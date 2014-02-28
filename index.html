@@ -783,8 +783,7 @@
             var position = new THREE.Vector3(message.position.x, message.position.y, message.position.z);
             for (var i = objects.length - 1; i >= 0; i--) {
               if (objects[i].position.equals(position)) {
-                scene.remove(objects[i]);
-                objects.splice(i, 1);
+                removeVoxel({ object: objects[i] }, true);
                 i = 0;
               }
             }
