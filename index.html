@@ -657,7 +657,10 @@
             if ( intersector.object != plane ) {
               var intersects = raycaster.intersectObjects( objects );
               intersector = getRealIntersector( intersects );
-              removeVoxel(intersector);
+
+              if (intersector) {
+                removeVoxel(intersector);
+              }
             }
 
           // create cube
