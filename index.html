@@ -24,6 +24,10 @@
         font-size: 25px;
       }
 
+      #header #users {
+        font-size: 18px;
+      }
+
       #logo {
         background: url(assets/logo.png);
         background-size: cover;
@@ -146,6 +150,8 @@
     <div id="page">
       <div id="header">
         <a href="http://pubnub.com" target="_blank"><div id="logo"></div></a>Collaborative Voxel Painting
+        <br>
+        <span id="users">Currently 0 Users Painting</span>
       </div>
 
       <div id="info">
@@ -228,6 +234,8 @@
       var locations = {};
 
       var chunks = [], intersectors = [], intersectorScene = new THREE.Scene(), camera2;
+
+      var usersEl = document.querySelector("#users");
 
       init();
       animate();
@@ -782,6 +790,11 @@
                 i = 0;
               }
             }
+          }
+        },
+        presence: function (message) {
+          if (message && message.occupancy) {
+            usersEl.innerHTML = "Currently " + message.occupancy + " Users Painting";
           }
         }
       });
