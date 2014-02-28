@@ -601,8 +601,6 @@
           voxel.position.copy(position);
           voxel.matrixAutoUpdate = false;
           voxel.updateMatrix();
-
-          doAmbientOcclusion();
           
           chunks[matIndex].addGeometry(voxel);
 
@@ -611,6 +609,8 @@
           intersectorScene.add(voxel);
           var key = [position.x, position.y, position.z].join('|');
           locations[key] = voxel;
+
+          doAmbientOcclusion();
 
           // If we created the block, tell others about it
           if (!quiet) {
